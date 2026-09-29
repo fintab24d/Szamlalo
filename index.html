@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="hu" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuliSzámláló - Iskolai Tanév és Szünet Nyilvántartó</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f3ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Glassmorphism Dark Mode Styles */
+        .dark body {
+            background-color: #090d16;
+            color: #f8fafc;
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .dark .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        /* Glassmorphism Light Mode Styles */
+        body:not(.dark) {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        body:not(.dark) .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+        body:not(.dark) .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+        body:not(.dark) .glass-card:hover {
+            border-color: rgba(79, 70, 229, 0.4);
+        }
+
+        .glow-effect {
+            box-shadow: 0 0 30px -5px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <header class="sticky top-0 z-40 glass-panel border-b px-4 py-3 sm:px-8">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-gradient-to-tr from-indigo-600 to-purple-500 rounded-2xl shadow-lg shadow-indigo-500/30 text-white">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tight flex items-center gap-2">
+                        SuliSzámláló <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 border border-indigo-500/30">2026/2027</span>
+                    </h1>
+                    <p class="text-xs opacity-70 hidden sm:block">Iskolai Tanév & Szünet Nyilvántartó</p>
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <nav class="flex items-center space-x-1 p-1 rounded-xl bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800">
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-white bg-indigo-600 shadow">
+                        <i class="fa-solid fa-gauge-high mr-1.5"></i>Áttekintés
+                    </button>
+                    <button onclick="switchTab('breaks')" id="tab-breaks" class="tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-slate-200 transition-all">
+                        <i class="fa-solid fa-umbrella-beach mr-1.5"></i>Szünetek
+                    </button>
+                    <button onclick="switchTab('calendar')" id="tab-calendar" class="tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-slate-200 transition-all">
+                        <i class="fa-regular fa-calendar-days mr-1.5"></i>Naptár
+                    </button>
+                </nav>
+
+                <!-- Theme Toggle Button -->
+                <button onclick="toggleTheme()" class="p-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-200 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition shadow-sm">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+
+                <!-- Settings Button -->
+                <button onclick="openSettingsModal()" class="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition shadow-md">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+
+        <!-- ================= TAB 1: DASHBOARD ================= -->
+        <div id="view-dashboard" class="space-y-8">
+
+            <!-- Hero Countdown Card -->
+            <section class="glass-panel rounded-3xl p-6 sm:p-8 glow-effect relative overflow-hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-500 dark:text-indigo-400 mb-2 border border-indigo-500/20">
+                            <i class="fa-solid fa-bullseye"></i> Élő Célpont Számláló
+                        </div>
+                        <h2 id="target-title" class="text-2xl sm:text-3xl font-black tracking-tight">
+                            Legközelebbi mérföldkő...
+                        </h2>
+                        <p id="target-subtitle" class="text-sm opacity-70 mt-1">Dátum: <span id="target-dates" class="font-semibold">-</span></p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <select id="countdown-selector" onchange="changeCountdownTarget()" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-xl px-4 py-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">
+                            <option value="next_break">Következő Szünet</option>
+                            <option value="year_end">Tanév Vége (Nyári Szünet)</option>
+                        </select>
+                        <button onclick="triggerConfetti()" title="Konfetti Énnepély" class="px-3 py-2.5 rounded-xl bg-amber-500/20 text-amber-500 border border-amber-500/30 hover:bg-amber-500/30 transition">
+                            <i class="fa-solid fa-sparkles"></i> 🎉
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Big Animated Countdown Number Display -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 my-2">
+                    <div class="glass-card rounded-2xl p-4 sm:p-6 text-center border relative group">
+                        <div class="text-4xl sm:text-6xl font-black tracking-tight text-indigo-600 dark:text-indigo-400" id="cnt-days">00</div>
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider opacity-70 mt-2">Nap</div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 sm:p-6 text-center border relative group">
+                        <div class="text-4xl sm:text-6xl font-black tracking-tight text-purple-600 dark:text-purple-400" id="cnt-hours">00</div>
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider opacity-70 mt-2">Óra</div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 sm:p-6 text-center border relative group">
+                        <div class="text-4xl sm:text-6xl font-black tracking-tight text-pink-600 dark:text-pink-400" id="cnt-minutes">00</div>
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider opacity-70 mt-2">Perc</div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 sm:p-6 text-center border relative group">
+                        <div class="text-4xl sm:text-6xl font-black tracking-tight text-emerald-600 dark:text-emerald-400" id="cnt-seconds">00</div>
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider opacity-70 mt-2">Másodperc</div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Today Status & Bell Countdown Card -->
+                <div class="lg:col-span-1 glass-panel rounded-3xl p-6 flex flex-col justify-between relative">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold uppercase tracking-wider opacity-60">Mai Nap Státusza</span>
+                            <span id="today-date-formatted" class="text-xs font-bold bg-indigo-500/10 text-indigo-500 px-2.5 py-1 rounded-lg">2026.09.29.</span>
+                        </div>
+                        <div id="today-status-badge" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold mb-3">
+                            <i class="fa-solid fa-book-open"></i> Tanítási Nap
+                        </div>
+                        <h3 id="today-status-title" class="text-xl font-extrabold mb-2">Ma tanítás van!</h3>
+                        <p id="today-status-desc" class="text-sm opacity-80">
+                            Húzz bele, már nincs sok hátra a mai tanítási napból!
+                        </p>
+                    </div>
+
+                    <!-- Bell Ring Box -->
+                    <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+                        <div class="flex justify-between items-center text-xs mb-2">
+                            <span class="font-semibold"><i class="fa-solid fa-bell mr-1.5 text-amber-500"></i>Kicsengés (<span id="bell-time-display">14:00</span>)</span>
+                            <span id="bell-countdown-status" class="font-bold text-amber-500">Hátralévő idő</span>
+                        </div>
+                        <div id="bell-countdown-box" class="bg-slate-100 dark:bg-slate-900 rounded-2xl p-3.5 text-center border border-slate-200 dark:border-slate-800">
+                            <span id="bell-countdown-timer" class="text-2xl font-black text-amber-500 tracking-wider">--:--:--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Progress Bar & Detailed Statistics -->
+                <div class="lg:col-span-2 glass-panel rounded-3xl p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-indigo-500"></i> Tanév Haladás
+                            </h3>
+                            <span id="progress-percent" class="text-2xl font-black text-indigo-600 dark:text-indigo-400">0%</span>
+                        </div>
+                        <p class="text-xs opacity-70 mb-4">A tanévből eltelt naptári idő és a hátralévő tanítási napok lebontása.</p>
+
+                        <!-- Visual Progress Bar -->
+                        <div class="w-full bg-slate-200 dark:bg-slate-900 rounded-full h-4 p-0.5 border border-slate-300 dark:border-slate-800 overflow-hidden mb-6">
+                            <div id="progress-bar-fill" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full rounded-full transition-all duration-700 ease-out w-0 shadow-md"></div>
+                        </div>
+                    </div>
+
+                    <!-- 4 Stat Cards Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="bg-slate-100 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 text-center">
+                            <div class="text-xs opacity-70 mb-1 font-medium">Eltelt Tanítási Nap</div>
+                            <div id="stat-passed-school-days" class="text-2xl font-black text-emerald-500">0</div>
+                            <div class="text-[10px] opacity-60">nap</div>
+                        </div>
+                        <div class="bg-slate-100 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 text-center">
+                            <div class="text-xs opacity-70 mb-1 font-medium">Hátralévő Tanítási Nap</div>
+                            <div id="stat-remaining-school-days" class="text-2xl font-black text-indigo-500">0</div>
+                            <div class="text-[10px] opacity-60">nap</div>
+                        </div>
+                        <div class="bg-slate-100 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 text-center">
+                            <div class="text-xs opacity-70 mb-1 font-medium">Hétvégék & Szünetek</div>
+                            <div id="stat-weekend-holiday-days" class="text-2xl font-black text-amber-500">0</div>
+                            <div class="text-[10px] opacity-60">nap</div>
+                        </div>
+                        <div class="bg-slate-100 dark:bg-slate-900/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 text-center">
+                            <div class="text-xs opacity-70 mb-1 font-medium">Összesen Tanévben</div>
+                            <div id="stat-total-school-days" class="text-2xl font-black opacity-90">0</div>
+                            <div class="text-[10px] opacity-60">tanítási nap</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Next Breaks Preview Horizontal Cards -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-umbrella-beach text-amber-500"></i> Közelgő Szünetek
+                    </h3>
+                    <button onclick="switchTab('breaks')" class="text-xs font-bold text-indigo-500 hover:underline">Összes megtekintése &rarr;</button>
+                </div>
+                <div id="upcoming-breaks-preview" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Populated dynamically by JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= TAB 2: BREAKS LIST ================= -->
+        <div id="view-breaks" class="space-y-6 hidden">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-6 rounded-3xl">
+                <div>
+                    <h2 class="text-2xl font-black">Iskolai Szünetek és Munkaszüneti Napok</h2>
+                    <p class="text-sm opacity-70 mt-1">A 2026/2027-es tanév hivatalos magyarországi szünetei és ünnepei.</p>
+                </div>
+                <button onclick="openSettingsModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2 transition">
+                    <i class="fa-solid fa-plus"></i> Új Szünet / Módosítás
+                </button>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto">
+                <button onclick="filterBreaks('all')" id="filter-all" class="break-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow">Összes (<span id="cnt-filter-all">0</span>)</button>
+                <button onclick="filterBreaks('upcoming')" id="filter-upcoming" class="break-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300">Még Hátravan (<span id="cnt-filter-upcoming">0</span>)</button>
+                <button onclick="filterBreaks('active')" id="filter-active" class="break-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300">Folyamatban (<span id="cnt-filter-active">0</span>)</button>
+                <button onclick="filterBreaks('passed')" id="filter-passed" class="break-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300">Eltelt (<span id="cnt-filter-passed">0</span>)</button>
+            </div>
+
+            <!-- Grid List of Breaks -->
+            <div id="breaks-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamically filled by JS -->
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: CALENDAR VIEW ================= -->
+        <div id="view-calendar" class="space-y-6 hidden">
+            <div class="glass-panel p-6 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-black">Iskolai Naptár & Hónap Áttekintő</h2>
+                    <p class="text-sm opacity-70 mt-1">Interaktív naptár a tanítási napok, hétvégék és szünetek megtekintésére.</p>
+                </div>
+                <!-- Legend -->
+                <div class="flex items-center gap-4 text-xs font-bold bg-slate-100 dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Tanítás</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-indigo-500"></span> Hétvége</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Szünet</span>
+                </div>
+            </div>
+
+            <!-- Calendar Month Selector -->
+            <div class="flex items-center justify-between bg-slate-200 dark:bg-slate-900 p-4 rounded-2xl border border-slate-300 dark:border-slate-800">
+                <button onclick="changeMonth(-1)" class="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white rounded-xl text-xs font-bold transition"><i class="fa-solid fa-chevron-left"></i> Előző</button>
+                <h3 id="calendar-month-title" class="text-lg font-extrabold">2026. Szeptember</h3>
+                <button onclick="changeMonth(1)" class="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white rounded-xl text-xs font-bold transition">Következő <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
+            <!-- Visual Month Grid -->
+            <div class="glass-panel p-6 rounded-3xl">
+                <div class="grid grid-cols-7 gap-2 text-center text-xs font-extrabold opacity-60 mb-3 uppercase tracking-wider">
+                    <div>Hé</div>
+                    <div>Ke</div>
+                    <div>Sze</div>
+                    <div>Csü</div>
+                    <div>Pén</div>
+                    <div class="text-indigo-500">Szo</div>
+                    <div class="text-indigo-500">Vas</div>
+                </div>
+                <div id="calendar-days-grid" class="grid grid-cols-7 gap-2">
+                    <!-- Dynamic calendar days -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-300">
+        <div class="glass-panel border border-slate-700/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                <h3 class="text-xl font-black flex items-center gap-2.5">
+                    <i class="fa-solid fa-sliders text-indigo-500"></i> Beállítások & Szünetek Szerkesztése
+                </h3>
+                <button onclick="closeSettingsModal()" class="p-2 opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="space-y-6 text-sm">
+                <!-- Academic Year Config -->
+                <div class="bg-slate-100 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                    <h4 class="font-extrabold text-indigo-500 text-xs uppercase tracking-wider">Tanév Alapadatai</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold opacity-70 mb-1">Tanév Kezdete</label>
+                            <input type="date" id="input-school-start" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold opacity-70 mb-1">Tanév Vége (Nyári szünet kezdete)</label>
+                            <input type="date" id="input-school-end" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold opacity-70 mb-1">Kicsengés Időpontja (Tanítási nap vége)</label>
+                        <input type="time" id="input-bell-time" class="w-full sm:w-1/2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Custom Breaks Editor -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-extrabold text-indigo-500 text-xs uppercase tracking-wider">Iskolai Szünetek Lista</h4>
+                        <button type="button" onclick="addNewBreakRow()" class="px-3 py-1.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-xl text-xs font-bold border border-indigo-500/30">
+                            + Új Szünet Hozzáadása
+                        </button>
+                    </div>
+
+                    <div id="modal-breaks-list" class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                        <!-- Dynamic Editable Rows -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4">
+                <button type="button" onclick="resetDefaultConfig()" class="px-4 py-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-xl text-xs font-bold border border-rose-500/30 transition">
+                    Alapértékek Visszaállítása
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold transition">
+                        Mégse
+                    </button>
+                    <button type="button" onclick="saveSettings()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow transition">
+                        Mentés & Frissítés
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <footer class="glass-panel border-t py-4 text-center text-xs opacity-60 mt-auto">
+        <p>SuliSzámláló &copy; <span id="current-year-footer">2026</span> | Készült a magyar diákoknak 🚀</p>
+    </footer>
+
+    <script>
+        // Default Config data specifically pre-populated for Hungarian 2026/2027 school year
+        const DEFAULT_CONFIG = {
+            schoolStart: "2026-09-01",
+            schoolEnd: "2027-06-18",
+            bellTime: "14:00",
+            breaks: [
+                { id: '1', name: "Nemzeti Ünnep (Okt 23)", start: "2026-10-23", end: "2026-10-23", type: "ünnep", icon: "fa-flag" },
+                { id: '2', name: "Őszi Szünet", start: "2026-10-24", end: "2026-11-01", type: "szünet", icon: "fa-leaf" },
+                { id: '3', name: "Téli Szünet", start: "2026-12-19", end: "2027-01-03", type: "szünet", icon: "fa-snowflake" },
+                { id: '4', name: "Nemzeti Ünnep (Márc 15)", start: "2027-03-15", end: "2027-03-15", type: "ünnep", icon: "fa-flag" },
+                { id: '5', name: "Tavaszi Szünet", start: "2027-03-25", end: "2027-04-06", type: "szünet", icon: "fa-seedling" },
+                { id: '6', name: "A Munka Ünnepe (Máj 1)", start: "2027-05-01", end: "2027-05-01", type: "ünnep", icon: "fa-sun" },
+                { id: '7', name: "Pünkösdhétfő", start: "2027-05-17", end: "2027-05-17", type: "ünnep", icon: "fa-dove" },
+                { id: '8', name: "Nyári Szünet", start: "2027-06-19", end: "2027-08-31", type: "szünet", icon: "fa-umbrella-beach" }
+            ]
+        };
+
+        // Active State
+        let config = loadConfig();
+        let currentTargetMode = 'next_break'; // 'next_break' or 'year_end'
+        let activeFilter = 'all';
+        let calendarYearMonth = { year: new Date().getFullYear(), month: new Date().getMonth() };
+
+        function loadConfig() {
+            const stored = localStorage.getItem('suli_szamlalo_cfg_v2');
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch(e) {
+                    console.error("Error loading stored config, fallback to default", e);
+                }
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+        }
+
+        function saveConfigToStorage() {
+            localStorage.setItem('suli_szamlalo_cfg_v2', JSON.stringify(config));
+        }
+
+        // Dark/Light Theme Switching
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fa-solid fa-sun text-amber-500';
+                localStorage.setItem('suli_theme', 'light');
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-moon text-indigo-400';
+                localStorage.setItem('suli_theme', 'dark');
+            }
+        }
+
+        function initTheme() {
+            const storedTheme = localStorage.getItem('suli_theme');
+            const icon = document.getElementById('theme-icon');
+            if (storedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+                icon.className = 'fa-solid fa-sun text-amber-500';
+            } else {
+                document.documentElement.classList.add('dark');
+                icon.className = 'fa-solid fa-moon text-indigo-400';
+            }
+        }
+
+        // Notification Toast
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-2xl text-xs font-bold text-white flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0 ${
+                type === 'success' ? 'bg-emerald-600' : 'bg-indigo-600'
+            }`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i> ${message}`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Trigger Confetti Animation
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function parseDate(str) {
+            if (!str) return new Date();
+            const [y, m, d] = str.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function formatDateHu(dateObj) {
+            if (!dateObj || isNaN(dateObj)) return '-';
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}.${m}.${d}.`;
+        }
+
+        function isWeekend(date) {
+            const day = date.getDay();
+            return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+        }
+
+        function isDateInBreak(dateStr) {
+            return config.breaks.some(b => dateStr >= b.start && dateStr <= b.end);
+        }
+
+        function isSchoolDay(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            if (dateStr < config.schoolStart || dateStr > config.schoolEnd) return false;
+            if (isWeekend(date)) return false;
+            if (isDateInBreak(dateStr)) return false;
+            return true;
+        }
+
+        function updateLiveCountdown() {
+            const now = new Date();
+            let targetDate = null;
+            let titleText = "";
+            let datesText = "";
+
+            if (currentTargetMode === 'year_end') {
+                targetDate = parseDate(config.schoolEnd);
+                targetDate.setHours(12, 0, 0, 0); // Midday finish standard
+                titleText = "Hátralévő idő a Tanév Végéig";
+                datesText = formatDateHu(parseDate(config.schoolEnd));
+            } else {
+                const todayStr = now.toISOString().split('T')[0];
+                const sortedBreaks = [...config.breaks].sort((a,b) => a.start.localeCompare(b.start));
+                
+                let nextBreak = sortedBreaks.find(b => b.end >= todayStr);
+
+                if (nextBreak) {
+                    targetDate = parseDate(nextBreak.start);
+                    targetDate.setHours(0, 0, 0, 0);
+
+                    if (todayStr >= nextBreak.start && todayStr <= nextBreak.end) {
+                        targetDate = parseDate(nextBreak.end);
+                        targetDate.setHours(23, 59, 59, 999);
+                        titleText = `${nextBreak.name} (Épp Folyamatban!)`;
+                        datesText = `Szünet vége: ${formatDateHu(parseDate(nextBreak.end))}`;
+                    } else {
+                        titleText = `Hátralévő idő: ${nextBreak.name}`;
+                        datesText = `${formatDateHu(parseDate(nextBreak.start))} - ${formatDateHu(parseDate(nextBreak.end))}`;
+                    }
+                } else {
+                    targetDate = parseDate(config.schoolEnd);
+                    titleText = "Tanév Vége";
+                    datesText = formatDateHu(targetDate);
+                }
+            }
+
+            document.getElementById('target-title').innerText = titleText;
+            document.getElementById('target-subtitle').innerHTML = `Dátum: <span class="font-bold text-indigo-500">${datesText}</span>`;
+
+            const diffMs = targetDate - now;
+
+            if (diffMs <= 0) {
+                document.getElementById('cnt-days').innerText = "00";
+                document.getElementById('cnt-hours').innerText = "00";
+                document.getElementById('cnt-minutes').innerText = "00";
+                document.getElementById('cnt-seconds').innerText = "00";
+                return;
+            }
+
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+            const seconds = Math.floor((diffMs / 1000) % 60);
+
+            document.getElementById('cnt-days').innerText = String(days).padStart(2, '0');
+            document.getElementById('cnt-hours').innerText = String(hours).padStart(2, '0');
+            document.getElementById('cnt-minutes').innerText = String(minutes).padStart(2, '0');
+            document.getElementById('cnt-seconds').innerText = String(seconds).padStart(2, '0');
+        }
+
+        // Today Status & Bell Countdown
+        function updateTodayStatus() {
+            const now = new Date();
+            document.getElementById('today-date-formatted').innerText = formatDateHu(now);
+            document.getElementById('bell-time-display').innerText = config.bellTime;
+
+            const badge = document.getElementById('today-status-badge');
+            const title = document.getElementById('today-status-title');
+            const desc = document.getElementById('today-status-desc');
+
+            const isSchDay = isSchoolDay(now);
+
+            if (isSchDay) {
+                badge.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 mb-3";
+                badge.innerHTML = `<i class="fa-solid fa-book-open"></i> Tanítási Nap`;
+                title.innerText = "Ma tanítás van!";
+                desc.innerText = "Készülj fel az órákra és tartsd a frontot kicsengésig!";
+            } else if (isWeekend(now)) {
+                badge.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 mb-3";
+                badge.innerHTML = `<i class="fa-solid fa-couch"></i> Hétvége`;
+                title.innerText = "Hétvégi pihenőidő! 🎉";
+                desc.innerText = "Ma nincs suli! Használd ki a hétvégét a feltöltődésre.";
+            } else {
+                badge.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30 mb-3";
+                badge.innerHTML = `<i class="fa-solid fa-umbrella-beach"></i> Szünet / Munkaszünet`;
+                title.innerText = "Szünet van! 🌴";
+                desc.innerText = "Élvezd a szabadnapokat és a pihenést!";
+            }
+
+            // Bell Time Countdown
+            const [bHours, bMins] = config.bellTime.split(':').map(Number);
+            const bellDate = new Date();
+            bellDate.setHours(bHours, bMins, 0, 0);
+
+            const bellTimerDisplay = document.getElementById('bell-countdown-timer');
+            const bellStatusText = document.getElementById('bell-countdown-status');
+
+            if (!isSchDay) {
+                bellStatusText.innerText = "Mai nap";
+                bellTimerDisplay.innerText = "Nincs kicsengés";
+                bellTimerDisplay.className = "text-base font-bold opacity-50";
+                return;
+            }
+
+            const diffMs = bellDate - now;
+
+            if (diffMs > 0) {
+                const h = Math.floor(diffMs / (1000 * 60 * 60));
+                const m = Math.floor((diffMs / (1000 * 60)) % 60);
+                const s = Math.floor((diffMs / 1000) % 60);
+                bellStatusText.innerText = "Hátralévő idő";
+                bellTimerDisplay.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                bellTimerDisplay.className = "text-2xl font-black text-amber-500 tracking-wider";
+            } else {
+                bellStatusText.innerText = "Kicsengés";
+                bellTimerDisplay.innerText = "A mai tanításnak vége! 🎉";
+                bellTimerDisplay.className = "text-sm font-bold text-emerald-500";
+            }
+        }
+
+        function calculateYearStats() {
+            const start = parseDate(config.schoolStart);
+            const end = parseDate(config.schoolEnd);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            let passedSchoolDays = 0;
+            let remainingSchoolDays = 0;
+            let totalSchoolDays = 0;
+            let weekendAndHolidayDays = 0;
+            let totalCalendarDays = 0;
+            let passedCalendarDays = 0;
+
+            let curr = new Date(start);
+            while (curr <= end) {
+                totalCalendarDays++;
+                const isSch = isSchoolDay(curr);
+
+                if (isSch) {
+                    totalSchoolDays++;
+                    if (curr < today) {
+                        passedSchoolDays++;
+                    } else if (curr >= today) {
+                        remainingSchoolDays++;
+                    }
+                } else {
+                    weekendAndHolidayDays++;
+                }
+
+                if (curr <= today) {
+                    passedCalendarDays++;
+                }
+
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            let percent = totalCalendarDays > 0 ? Math.min(100, Math.max(0, Math.round((passedCalendarDays / totalCalendarDays) * 100))) : 0;
+
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            document.getElementById('progress-bar-fill').style.width = `${percent}%`;
+
+            document.getElementById('stat-passed-school-days').innerText = passedSchoolDays;
+            document.getElementById('stat-remaining-school-days').innerText = remainingSchoolDays;
+            document.getElementById('stat-weekend-holiday-days').innerText = weekendAndHolidayDays;
+            document.getElementById('stat-total-school-days').innerText = totalSchoolDays;
+        }
+
+        function renderBreaksView() {
+            const container = document.getElementById('breaks-container');
+            const previewContainer = document.getElementById('upcoming-breaks-preview');
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            container.innerHTML = '';
+            if (previewContainer) previewContainer.innerHTML = '';
+
+            let cntAll = config.breaks.length;
+            let cntUpcoming = 0;
+            let cntActive = 0;
+            let cntPassed = 0;
+
+            const sorted = [...config.breaks].sort((a,b) => a.start.localeCompare(b.start));
+            let previewCount = 0;
+
+            sorted.forEach(item => {
+                let statusKey = '';
+                let badgeHTML = '';
+
+                if (todayStr > item.end) {
+                    statusKey = 'passed';
+                    cntPassed++;
+                    badgeHTML = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-500">Már eltelt</span>`;
+                } else if (todayStr >= item.start && todayStr <= item.end) {
+                    statusKey = 'active';
+                    cntActive++;
+                    badgeHTML = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 animate-pulse">Épp folyamatban</span>`;
+                } else {
+                    statusKey = 'upcoming';
+                    cntUpcoming++;
+                    badgeHTML = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-500 border border-indigo-500/30">Még hátravan</span>`;
+                }
+
+                const sDate = parseDate(item.start);
+                const eDate = parseDate(item.end);
+                const dayDuration = Math.round((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
+
+                const card = document.createElement('div');
+                card.className = `glass-card rounded-2xl p-5 border flex flex-col justify-between transition-all ${
+                    statusKey === 'active' ? 'border-emerald-500 glow-effect' : 'border-slate-200 dark:border-slate-800'
+                }`;
+
+                if (activeFilter !== 'all' && activeFilter !== statusKey) {
+                    card.classList.add('hidden');
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-indigo-500 border border-slate-200 dark:border-slate-800">
+                                <i class="fa-solid ${item.icon || 'fa-umbrella-beach'} text-lg"></i>
+                            </span>
+                            ${badgeHTML}
+                        </div>
+                        <h4 class="text-lg font-extrabold mb-1">${item.name}</h4>
+                        <p class="text-xs opacity-70 mb-4">
+                            <i class="fa-regular fa-calendar mr-1"></i>${formatDateHu(sDate)} ${item.start !== item.end ? '- ' + formatDateHu(eDate) : ''}
+                        </p>
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs opacity-70">
+                        <span>Időtartam: <strong>${dayDuration} nap</strong></span>
+                        <span class="capitalize px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-900 font-bold">${item.type || 'szünet'}</span>
+                    </div>
+                `;
+
+                container.appendChild(card);
+
+                // Add to dashboard quick preview
+                if ((statusKey === 'upcoming' || statusKey === 'active') && previewCount < 3 && previewContainer) {
+                    previewCount++;
+                    const miniCard = document.createElement('div');
+                    miniCard.className = "glass-card rounded-2xl p-4 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 transition";
+                    miniCard.innerHTML = `
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-indigo-500 flex items-center gap-1.5">
+                                <i class="fa-solid ${item.icon || 'fa-umbrella-beach'}"></i> ${item.name}
+                            </span>
+                            ${badgeHTML}
+                        </div>
+                        <p class="text-xs font-semibold opacity-80">
+                            ${formatDateHu(sDate)} ${item.start !== item.end ? '- ' + formatDateHu(eDate) : ''}
+                        </p>
+                    `;
+                    previewContainer.appendChild(miniCard);
+                }
+            });
+
+            document.getElementById('cnt-filter-all').innerText = cntAll;
+            document.getElementById('cnt-filter-upcoming').innerText = cntUpcoming;
+            document.getElementById('cnt-filter-active').innerText = cntActive;
+            document.getElementById('cnt-filter-passed').innerText = cntPassed;
+        }
+
+        function filterBreaks(type) {
+            activeFilter = type;
+            document.querySelectorAll('.break-filter-btn').forEach(btn => {
+                btn.className = "break-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 transition";
+            });
+            const activeBtn = document.getElementById(`filter-${type}`);
+            if (activeBtn) {
+                activeBtn.className = "break-filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow transition";
+            }
+            renderBreaksView();
+        }
+
+        function renderCalendar() {
+            const { year, month } = calendarYearMonth;
+            const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+            
+            document.getElementById('calendar-month-title').innerText = `${year}. ${monthNames[month]}`;
+
+            const grid = document.getElementById('calendar-days-grid');
+            grid.innerHTML = '';
+
+            const firstDayOfMonth = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let startDayOffset = firstDayOfMonth.getDay() - 1;
+            if (startDayOffset === -1) startDayOffset = 6;
+
+            for (let i = 0; i < startDayOffset; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "h-12 sm:h-16 rounded-xl bg-slate-200/40 dark:bg-slate-900/40 opacity-20";
+                grid.appendChild(emptyCell);
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateObj = new Date(year, month, day);
+                const dateStr = dateObj.toISOString().split('T')[0];
+
+                const isWknd = isWeekend(dateObj);
+                const isBrk = isDateInBreak(dateStr);
+                const isSch = isSchoolDay(dateObj);
+                const isToday = dateStr === todayStr;
+
+                const cell = document.createElement('div');
+                let bgStyle = "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-60";
+                let badgeText = "";
+
+                if (isBrk) {
+                    bgStyle = "bg-amber-500/10 border-amber-500/30 text-amber-500 font-bold";
+                    badgeText = "Szünet";
+                } else if (isWknd) {
+                    bgStyle = "bg-indigo-500/10 border-indigo-500/30 text-indigo-500 font-bold";
+                    badgeText = "Hétvége";
+                } else if (isSch) {
+                    bgStyle = "bg-emerald-500/10 border-emerald-500/30 text-emerald-500 font-bold";
+                    badgeText = "Suli";
+                }
+
+                cell.className = `h-12 sm:h-16 rounded-xl border p-1.5 flex flex-col justify-between transition-all ${bgStyle} ${
+                    isToday ? 'ring-2 ring-indigo-500 font-black shadow-lg scale-105' : ''
+                }`;
+
+                cell.innerHTML = `
+                    <div class="flex items-center justify-between text-xs">
+                        <span>${day}</span>
+                        ${isToday ? '<span class="text-[8px] bg-indigo-600 text-white px-1 rounded font-bold">MA</span>' : ''}
+                    </div>
+                    <div class="text-[9px] font-bold text-right truncate">
+                        ${badgeText}
+                    </div>
+                `;
+
+                grid.appendChild(cell);
+            }
+        }
+
+        function changeMonth(delta) {
+            calendarYearMonth.month += delta;
+            if (calendarYearMonth.month < 0) {
+                calendarYearMonth.month = 11;
+                calendarYearMonth.year--;
+            } else if (calendarYearMonth.month > 11) {
+                calendarYearMonth.month = 0;
+                calendarYearMonth.year++;
+            }
+            renderCalendar();
+        }
+
+        function openSettingsModal() {
+            document.getElementById('input-school-start').value = config.schoolStart;
+            document.getElementById('input-school-end').value = config.schoolEnd;
+            document.getElementById('input-bell-time').value = config.bellTime;
+
+            renderModalBreaksList();
+
+            const modal = document.getElementById('settings-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function renderModalBreaksList() {
+            const container = document.getElementById('modal-breaks-list');
+            container.innerHTML = '';
+
+            config.breaks.forEach((b, idx) => {
+                const row = document.createElement('div');
+                row.className = "flex flex-col sm:flex-row items-center gap-2 bg-white dark:bg-slate-950 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800";
+                row.innerHTML = `
+                    <input type="text" value="${b.name}" placeholder="Szünet neve" data-idx="${idx}" class="break-name-input flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs rounded-xl p-2 font-bold focus:ring-1 focus:ring-indigo-500">
+                    <input type="date" value="${b.start}" data-idx="${idx}" class="break-start-input bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs rounded-xl p-2 font-bold focus:ring-1 focus:ring-indigo-500">
+                    <input type="date" value="${b.end}" data-idx="${idx}" class="break-end-input bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs rounded-xl p-2 font-bold focus:ring-1 focus:ring-indigo-500">
+                    <button type="button" onclick="deleteBreakRow(${idx})" class="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl"><i class="fa-solid fa-trash"></i></button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addNewBreakRow() {
+            config.breaks.push({
+                id: Date.now().toString(),
+                name: "Új szünet",
+                start: new Date().toISOString().split('T')[0],
+                end: new Date().toISOString().split('T')[0],
+                type: "szünet",
+                icon: "fa-umbrella-beach"
+            });
+            renderModalBreaksList();
+        }
+
+        function deleteBreakRow(idx) {
+            config.breaks.splice(idx, 1);
+            renderModalBreaksList();
+        }
+
+        function saveSettings() {
+            config.schoolStart = document.getElementById('input-school-start').value;
+            config.schoolEnd = document.getElementById('input-school-end').value;
+            config.bellTime = document.getElementById('input-bell-time').value;
+
+            const names = document.querySelectorAll('.break-name-input');
+            const starts = document.querySelectorAll('.break-start-input');
+            const ends = document.querySelectorAll('.break-end-input');
+
+            const updatedBreaks = [];
+            names.forEach((el, idx) => {
+                updatedBreaks.push({
+                    id: config.breaks[idx]?.id || Date.now().toString() + idx,
+                    name: el.value || "Szünet",
+                    start: starts[idx].value,
+                    end: ends[idx].value,
+                    type: "szünet",
+                    icon: "fa-umbrella-beach"
+                });
+            });
+
+            config.breaks = updatedBreaks;
+            saveConfigToStorage();
+
+            closeSettingsModal();
+            showToast("Beállítások elmentve!", "success");
+
+            calculateYearStats();
+            renderBreaksView();
+            renderCalendar();
+            updateLiveCountdown();
+            updateTodayStatus();
+        }
+
+        function resetDefaultConfig() {
+            config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+            saveConfigToStorage();
+            closeSettingsModal();
+            showToast("Alapértelmezett beállítások visszaállítva!", "info");
+
+            calculateYearStats();
+            renderBreaksView();
+            renderCalendar();
+            updateLiveCountdown();
+            updateTodayStatus();
+        }
+
+        function switchTab(tabKey) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-slate-200 transition-all";
+            });
+            const selectedBtn = document.getElementById(`tab-${tabKey}`);
+            if (selectedBtn) {
+                selectedBtn.className = "tab-btn active px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-white bg-indigo-600 shadow transition-all";
+            }
+
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-breaks').classList.add('hidden');
+            document.getElementById('view-calendar').classList.add('hidden');
+
+            document.getElementById(`view-${tabKey}`).classList.remove('hidden');
+        }
+
+        function changeCountdownTarget() {
+            currentTargetMode = document.getElementById('countdown-selector').value;
+            updateLiveCountdown();
+        }
+
+        window.onload = function() {
+            initTheme();
+            document.getElementById('current-year-footer').innerText = new Date().getFullYear();
+
+            calculateYearStats();
+            renderBreaksView();
+            renderCalendar();
+
+            // Live updates every second
+            setInterval(() => {
+                updateLiveCountdown();
+                updateTodayStatus();
+            }, 1000);
+
+            updateLiveCountdown();
+            updateTodayStatus();
+        };
+    </script>
+</body>
+</html>
